@@ -129,7 +129,6 @@ def client_thread(clientSocket, clientAddress, lock):
                 print(data)
                 clientSocket.send(message.encode())
         elif len(raw_data) == 0:
-            # This means the socket is closed and we need to clean up
             if peer_host:
                 lock.acquire()
                 remove_peer_remove_rfc(peer_host, peer_upload)

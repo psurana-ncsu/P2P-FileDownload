@@ -100,8 +100,8 @@ def client_thread(clientUploadSocket, upload_port):
 def server_thread(clientServerSocket, upload_port):
     
     global running
-    serverPort = 7734
-    serverName = "rohit-ubuntu"
+    serverPort = 7734 ##Connecting to a well know port number.
+    serverName = "rohit-ubuntu" ##Change according to your server's hostname.
     clientName = socket.gethostname()
 
     clientServerSocket.connect((serverName, serverPort))
@@ -140,9 +140,7 @@ def server_thread(clientServerSocket, upload_port):
             print("The server response to your lookup: ")
             print(response)
             response_lines = response.split("\n")
-            # if re.search(r"200 OK", response_lines[0]):
             if "200 OK" in response_lines[0]:
-                # From line 1 we have all the information we need
                 peer_info_line = response_lines[-2].split(" ")
                 print(peer_info_line)
                 peer_host = peer_info_line[-2]
@@ -154,7 +152,6 @@ def server_thread(clientServerSocket, upload_port):
                 if data:
                     with open("./{}.txt".format(rfc_number), "w") as file:
                         file.write(data)
-                    # Sending ADD request to Server so that the server can keep his things updated
                     message = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
                         + "HOST: " + clientName + "\n" \
                         + "PORT: " + str(upload_port) + "\n" \
@@ -208,9 +205,5 @@ def main():
     server_conn_thread.start()
 
 
-try:
+if __name__ == '__main__':
     main()
-except Exception as e:
-	print(e.with_traceback)
-	traceback.print_exc()
-	print(e)
