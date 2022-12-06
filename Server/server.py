@@ -30,8 +30,7 @@ def lookup_rfc(data):
     if rfc_number in rfc_list.keys():
         header += response_code[1]
         for peer in rfc_list[rfc_number]:
-            data += "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[
-                peer["PEER HOST"]] + "\n"
+            data += "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[peer["PEER HOST"]] + "\n"
         return header+data
 
     else:
@@ -59,6 +58,7 @@ def add_rfc(data):
         rfc_list[rfc_number].append({"PEER HOST": peer_host, "RFC TITLE": rfc_title})
     else:
         rfc_list[rfc_number] = [{"PEER HOST": peer_host, "RFC TITLE": rfc_title}]
+    print(active_peer_list)
     print(rfc_list)
 
 
@@ -66,8 +66,8 @@ def remove_peer_remove_rfc(peer_host, peer_upload):
     global active_peer_list
     global rfc_list
     del (active_peer_list[peer_host])
-    for key, value in rfc_list.items():
-        rfc_list[key] = [x for x in value if x.get("PEER HOST") != peer_host]
+    for a, b in rfc_list.items():
+        rfc_list[a] = [x for x in b if x.get("PEER HOST") != peer_host]
     rfc_list = {k: v for k, v in rfc_list.items() if v}
     print(active_peer_list)
     print(rfc_list)
@@ -97,8 +97,7 @@ def client_thread(clientSocket, clientAddress, lock):
                 peer_upload = re.sub(r"PORT: ", "", lines[2])
                 rfc_number = int(re.search(r"RFC (\d+)", lines[0]).group(1))
                 rfc_title = re.sub(r"TITLE: ", "", lines[3])
-                data_to_send = header + " " + response_code[1] \
-                        + "RFC {} ".format(rfc_number) + rfc_title + " " + peer_host + " " + peer_upload
+                data_to_send = header + " " + response_code[1] + "RFC {} ".format(rfc_number) + rfc_title + " " + peer_host + " " + peer_upload
                 lock.release()
                 clientSocket.send(data_to_send.encode())
             elif "LIST" in first_line:    
@@ -107,8 +106,7 @@ def client_thread(clientSocket, clientAddress, lock):
                 header = "P2P-CI/1.0 " + response_code[1]
                 for rfc_number, rfc_info in rfc_list.items():
                     for peer in rfc_info:
-                        header += "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[
-                            peer["PEER HOST"]] + "\n"
+                        header += "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[peer["PEER HOST"]] + "\n"
                 lock.release()
                 out_data = header
                 clientSocket.send(out_data.encode())

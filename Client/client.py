@@ -1,12 +1,12 @@
-import socket
-import threading
 import os
 import re
+import sys
 import random
 import platform
+import socket
+import threading
 import datetime
 import traceback
-import sys
 
 running = True
 
@@ -46,12 +46,9 @@ def upload_rfc(peerSocket, peerAddress):
                 if file_data:
                     header = "P2P-CI/1.0 "
                     header += "200 OK\n"
-                    header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(
-                        datetime.timezone.utc).astimezone().tzname() + "\n"
+                    header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() + "\n"
                     header += "OS: " + platform.system() + " " + platform.release() + "\n"
-                    header += "LAST-MODIFIED: " + str(
-                        os.path.getmtime("./{}.txt".format(str(rfc_number)))) + datetime.datetime.fromtimestamp(
-                        os.path.getmtime("./{}.txt".format(str(rfc_number)))).astimezone().tzname() + "\n"
+                    header += "LAST-MODIFIED: " + str(os.path.getmtime("./{}.txt".format(str(rfc_number)))) + datetime.datetime.fromtimestamp(os.path.getmtime("./{}.txt".format(str(rfc_number)))).astimezone().tzname() + "\n"
                     header += "CONTENT-LENGTH: " + str(len(file_data.encode())) + "\n"
                     header += "CONTENT-TYPE: text/text\n"
                     data = file_data
@@ -61,8 +58,7 @@ def upload_rfc(peerSocket, peerAddress):
                 else:
                     header = "P2P-CI/1.0 "
                     header += "404 Not Found\n"
-                    header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(
-                        datetime.timezone.utc).astimezone().tzname() + "\n"
+                    header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() + "\n"
                     header += "OS: " + platform.system() + " " + platform.release() + "\n"
                     return header
             except FileNotFoundError as e:
@@ -71,16 +67,14 @@ def upload_rfc(peerSocket, peerAddress):
         else:
             header = "P2P-CI/1.0 "
             header += "505 P2P-CI Version Not Supported\n"
-            header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(
-                datetime.timezone.utc).astimezone().tzname() + "\n"
+            header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() + "\n"
             header += "OS: " + platform.system() + " " + platform.release() + "\n"
             peerSocket.sendall(header.encode())
             peerSocket.close()
     else:
         header = "P2P-CI/1.0 "
         header += "400 Bad Request\n"
-        header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(
-            datetime.timezone.utc).astimezone().tzname() + "\n"
+        header += "DATE: " + str(datetime.datetime.today()) + " " + datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() + "\n"
         header += "OS: " + platform.system() + " " + platform.release() + "\n"
         peerSocket.sendall(header.encode())
         peerSocket.close()
@@ -116,10 +110,7 @@ def server_thread(clientServerSocket, upload_port):
             rfc_title = input("Please input the RFC Title " + "\n")
             # print (os.path+ "/" +rfc_number + ".txt")
             if os.path.exists(rfc_number + ".txt"):
-                header = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
-                + "HOST: " + clientName + "\n" \
-                + "PORT: " + str(upload_port) + "\n" \
-                + "TITLE: " + rfc_title
+                header = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" + "HOST: " + clientName + "\n" + "PORT: " + str(upload_port) + "\n" + "TITLE: " + rfc_title
                 clientServerSocket.send(header.encode())
                 raw_response = clientServerSocket.recv(1024)
                 response = raw_response.decode()
@@ -130,10 +121,7 @@ def server_thread(clientServerSocket, upload_port):
         elif request_type == "2" or request_type ==  2:
             rfc_number = input("Please input the RFC number you want to get: " + "\n")
             rfc_title = input("Please input the RFC Title of the RFC Number entered previously: " + "\n")
-            header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
-              + "HOST: " + clientName + "\n" \
-              + "PORT: " + str(upload_port) + "\n" \
-              + "TITLE: " + rfc_title
+            header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" + "HOST: " + clientName + "\n" + "PORT: " + str(upload_port) + "\n" + "TITLE: " + rfc_title
             clientServerSocket.send(header.encode())
             raw_response = clientServerSocket.recv(1024)
             response = raw_response.decode()
@@ -145,17 +133,12 @@ def server_thread(clientServerSocket, upload_port):
                 print(peer_info_line)
                 peer_host = peer_info_line[-2]
                 peer_port = int(peer_info_line[-1])
-                get_message = "GET RFC " + rfc_number + " P2P-CI/1.0\n" \
-              + "HOST: " + peer_host + "\n" \
-              + "OS: " + platform.system() + " " + platform.release()
+                get_message = "GET RFC " + rfc_number + " P2P-CI/1.0\n"  + "HOST: " + peer_host + "\n" "OS: " + platform.system() + " " + platform.release()
                 data = get_rfc(peer_host, peer_port, get_message)
                 if data:
                     with open("./{}.txt".format(rfc_number), "w") as file:
                         file.write(data)
-                    message = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
-                        + "HOST: " + clientName + "\n" \
-                        + "PORT: " + str(upload_port) + "\n" \
-                        + "TITLE: " + rfc_title
+                    message = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" + "HOST: " + clientName + "\n" + "PORT: " + str(upload_port) + "\n" + "TITLE: " + rfc_title
                     clientServerSocket.send(message.encode())
                     raw_response = clientServerSocket.recv(1024)
                     response = raw_response.decode()
@@ -164,9 +147,7 @@ def server_thread(clientServerSocket, upload_port):
                 print(response)
 
         elif request_type == "3" or request_type ==  3:
-            header = "LIST ALL P2P-CI/1.0\n" \
-              + "HOST: " + clientName + "\n" \
-              + "PORT: " + str(upload_port)
+            header = "LIST ALL P2P-CI/1.0\n"  + "HOST: " + clientName + "\n" + "PORT: " + str(upload_port)
             clientServerSocket.send(header.encode())
             raw_response = clientServerSocket.recv(1024)
             response = raw_response.decode()
@@ -175,10 +156,7 @@ def server_thread(clientServerSocket, upload_port):
         elif request_type == "4" or request_type ==  4:
             rfc_number = input("Please input the RFC Number you want to lookup: " + "\n")
             rfc_title = input("Please input the RFC Title of the RFC Number entered previously: " + "\n")
-            header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
-              + "HOST: " + clientName + "\n" \
-              + "PORT: " + str(upload_port) + "\n" \
-              + "TITLE: " + rfc_title
+            header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" + "HOST: " + clientName + "\n" + "PORT: " + str(upload_port) + "\n"  + "TITLE: " + rfc_title
             clientServerSocket.send(header.encode())
             raw_response = clientServerSocket.recv(1024)
             response = raw_response.decode()
@@ -193,7 +171,7 @@ def server_thread(clientServerSocket, upload_port):
             break
     
 def main():
-    # Manually create a random port number for the upload socket connection
+    # Selecting a random port number for the upload process
     upload_port = random.randint(10000, 63000)
     clientUploadSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     uploading_thread = threading.Thread(target=client_thread, args=(clientUploadSocket, upload_port))
