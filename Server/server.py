@@ -25,8 +25,6 @@ def lookup_rfc(data):
     global response_code
     header = "P2P-CI/1.0 "
     lines = data.split("\n")
-    # RFC Number is in the zero line
-    # RFC Title is in the 3rd line
     rfc_number = int(re.search(r"RFC (\d+)", lines[0]).group(1))
     rfc_title = re.sub(r"TITLE: ", "", lines[3])
     if rfc_number in rfc_list.keys():
@@ -44,19 +42,16 @@ def lookup_rfc(data):
 def add_active_peer(data):
     global active_peer_list
     lines = data.split("\n")
-    # Hostname of the client is on line 1
-    # Port Number that the client is using for the upload process is on line 2
     peer_host = re.sub(r"HOST: ", "", lines[1])
     peer_upload = re.sub(r"PORT: ", "", lines[2])
     active_peer_list[peer_host] = peer_upload
+    print(active_peer_list)
     return peer_host, peer_upload
 
 
 def add_rfc(data):
     global rfc_list
     lines = data.split("\n")
-    # RFC Number is in the zero line
-    # RFC Title is in the 3rd line
     rfc_number = int(re.search(r"RFC (\d+)", lines[0]).group(1))
     rfc_title = re.sub(r"TITLE: ", "", lines[3])
     peer_host = re.sub(r"HOST: ", "", lines[1])
@@ -67,7 +62,7 @@ def add_rfc(data):
     print(rfc_list)
 
 
-def clean_peer_and_rfc(peer_host, peer_upload):
+def remove_peer_remove_rfc(peer_host, peer_upload):
     global active_peer_list
     global rfc_list
     del (active_peer_list[peer_host])
@@ -89,8 +84,9 @@ def client_thread(clientSocket, clientAddress, lock):
         raw_data = clientSocket.recv(buff_size)
         data = raw_data.decode()
         first_line = data.split("\n")[0]
-        if re.search(r"P2P\-CI\/1\.0", first_line):
-            if re.search(r"ADD", first_line):
+        print(first_line)
+        if "P2P-CI/1.0" in first_line:
+            if "ADD" in first_line:
                 lock.acquire()
                 print(data)
                 peer_host, peer_upload = add_active_peer(data)
@@ -105,23 +101,29 @@ def client_thread(clientSocket, clientAddress, lock):
                         + "RFC {} ".format(rfc_number) + rfc_title + " " + peer_host + " " + peer_upload
                 lock.release()
                 clientSocket.send(data_to_send.encode())
-            elif re.search(r"LIST", first_line):
+            elif "LIST" in first_line:    
                 lock.acquire()
                 print(data)
                 header = "P2P-CI/1.0 " + response_code[1]
                 for rfc_number, rfc_info in rfc_list.items():
                     for peer in rfc_info:
-                        data_to_send = "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[
+                        header += "RFC {} ".format(rfc_number) + peer["RFC TITLE"] + " " + peer["PEER HOST"] + " " + active_peer_list[
                             peer["PEER HOST"]] + "\n"
                 lock.release()
-                out_data = header+data_to_send
+                out_data = header
                 clientSocket.send(out_data.encode())
-            elif re.search(r"LOOKUP", first_line):
+            elif "LOOKUP" in first_line: 
                 lock.acquire()
                 print(data)
                 response = lookup_rfc(data)
                 lock.release()
                 clientSocket.send(response.encode())
+            elif "QUIT" in first_line: 
+                if peer_host:
+                    lock.acquire()
+                    remove_peer_remove_rfc(peer_host, peer_upload)
+                    lock.release()
+                    break
             else:
                 message = "P2P-CI/1.0 " + response_code[2]
                 print(data)
@@ -130,14 +132,14 @@ def client_thread(clientSocket, clientAddress, lock):
             # This means the socket is closed and we need to clean up
             if peer_host:
                 lock.acquire()
-                clean_peer_and_rfc(peer_host, peer_upload)
+                remove_peer_remove_rfc(peer_host, peer_upload)
                 lock.release()
             break
         else:
-            message = "P2P-CI/1.0 " + response_code[4]
-            print(data)
-            clientSocket.send(message.encode())
-    print("This thread is done")
+            message_send = "P2P-CI/1.0 " + response_code[4]
+            # print(data)
+            clientSocket.send(message_send.encode())
+    print("Client disconnected")
 
 
 def main():

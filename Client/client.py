@@ -6,43 +6,39 @@ import random
 import platform
 import datetime
 import traceback
+import sys
 
+running = True
 
-def get_rfc(peer_host, peer_port, get_message):
-    clientDownloadSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientDownloadSocket.connect((peer_host, peer_port))
-    clientDownloadSocket.sendall(get_message.encode())
-    raw_response = clientDownloadSocket.recv(1024)
-    response = raw_response.decode()
-    # Find out the length of the data being sent first, and then call receive again
-    response_lines = response.split("\n")
-    if re.search(r"200 OK", response_lines[0]):
-        # Content length is on line 4
-        data_length = int(re.sub(r"CONTENT-LENGTH: ", "", response_lines[4]))
-        # Find the header length
+def get_rfc(client_host, client_port, get_data):
+    rfc_get_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    rfc_get_socket.connect((client_host, client_port))
+    rfc_get_socket.sendall(get_data.encode())
+    encoded_response = rfc_get_socket.recv(1024)
+    plain_text_response = encoded_response.decode()
+    response_lines = plain_text_response.split("\n")
+    if "200 OK" in  response_lines[0]: 
+        data_len = int(re.sub(r"CONTENT-LENGTH: ", "", response_lines[4]))
         header_length = len(("\n".join(response_lines[:6]) + "\n").encode())
-        # Obtain the data already received
-        data = response[header_length:]
-        # Recieve the rest of the data
-        remaining_data_length = data_length - (len(raw_response) - header_length)
-        while remaining_data_length > 0:
-            remaining_data = clientDownloadSocket.recv(remaining_data_length)
-            data += remaining_data.decode()
-            remaining_data_length -= len(remaining_data)
-        clientDownloadSocket.close()
-        return data
+        text = plain_text_response[header_length:]
+        rfc_data_length = data_len - (len(encoded_response) - header_length)
+        while rfc_data_length > 0:
+            remaining_data = rfc_get_socket.recv(rfc_data_length)
+            text += remaining_data.decode()
+            rfc_data_length -= len(remaining_data)
+        rfc_get_socket.close()
+        return text
     else:
-        print("There was an error from the peer. This is the error code and message")
-        print(response)
+        print("Error Occurred while downloading!")
+        print(plain_text_response)
         return
 
-def client_upload_rfc(peerSocket, peerAddress):
+def upload_rfc(peerSocket, peerAddress):
     raw_request = peerSocket.recv(1024)
     request = raw_request.decode()
-    # Get the RFC Number from the request
     request_lines = request.split("\n")
-    if re.search(r"P2P\-CI\/1\.0", request_lines[0]):
-        if re.search(r"GET", request_lines[0]):
+    if "P2P-CI/1.0" in request_lines[0]:
+        if "GET" in request_lines[0]:
             rfc_number = int(re.search(r"RFC (\d+)", request_lines[0]).group(1))
             try:
                 with open("./{}.txt".format(rfc_number), "r") as file:
@@ -97,21 +93,28 @@ def client_thread(clientUploadSocket, upload_port):
     clientUploadSocket.listen()
     while True:
         peerSocket, peerAddress = clientUploadSocket.accept()
-        peer_thread = threading.Thread(target=client_upload_rfc, args=(peerSocket, peerAddress))
+        peer_thread = threading.Thread(target=upload_rfc, args=(peerSocket, peerAddress))
         peer_thread.start()
 
 
 def server_thread(clientServerSocket, upload_port):
+    
+    global running
     serverPort = 7734
     serverName = "rohit-ubuntu"
     clientName = socket.gethostname()
+
     clientServerSocket.connect((serverName, serverPort))
     clientPort = clientServerSocket.getsockname()[1]
-    while True:
-        request_type = input("Please input the request type: " + "\n")
-        if request_type == "ADD":
+    while running:
+        
+        print("Please input the request type: " + "\n")
+        request_type = input("1: Add RFC\n2: Get RFC\n3: List RFC(s)\n4: Lookup RFC\n5: Close the Client\n")
+        if request_type == "1" or request_type ==  1:
+            print("kjdfhsjfhskjdf")
             rfc_number = input("Please input the RFC Number: " + "\n")
             rfc_title = input("Please input the RFC Title " + "\n")
+            # print (os.path+ "/" +rfc_number + ".txt")
             if os.path.exists(rfc_number + ".txt"):
                 header = "ADD RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
                 + "HOST: " + clientName + "\n" \
@@ -124,7 +127,7 @@ def server_thread(clientServerSocket, upload_port):
             else:
                 print("RFC not present")
 
-        elif request_type == "GET":
+        elif request_type == "2" or request_type ==  2:
             rfc_number = input("Please input the RFC number you want to get: " + "\n")
             rfc_title = input("Please input the RFC Title of the RFC Number entered previously: " + "\n")
             header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
@@ -137,10 +140,11 @@ def server_thread(clientServerSocket, upload_port):
             print("The server response to your lookup: ")
             print(response)
             response_lines = response.split("\n")
-            if re.search(r"200 OK", response_lines[0]):
+            # if re.search(r"200 OK", response_lines[0]):
+            if "200 OK" in response_lines[0]:
                 # From line 1 we have all the information we need
-                peer_info_line = response_lines[1].split(" ")
-                # Last item in the above list is the peer port number, second last item is the peer host
+                peer_info_line = response_lines[-2].split(" ")
+                print(peer_info_line)
                 peer_host = peer_info_line[-2]
                 peer_port = int(peer_info_line[-1])
                 get_message = "GET RFC " + rfc_number + " P2P-CI/1.0\n" \
@@ -162,7 +166,7 @@ def server_thread(clientServerSocket, upload_port):
                 print("Error Occurred")
                 print(response)
 
-        elif request_type == "LIST":
+        elif request_type == "3" or request_type ==  3:
             header = "LIST ALL P2P-CI/1.0\n" \
               + "HOST: " + clientName + "\n" \
               + "PORT: " + str(upload_port)
@@ -171,7 +175,7 @@ def server_thread(clientServerSocket, upload_port):
             response = raw_response.decode()
             print(response)
 
-        elif request_type == "LOOKUP":
+        elif request_type == "4" or request_type ==  4:
             rfc_number = input("Please input the RFC Number you want to lookup: " + "\n")
             rfc_title = input("Please input the RFC Title of the RFC Number entered previously: " + "\n")
             header = "LOOKUP RFC " + rfc_number + " P2P-CI/1.0" + "\n" \
@@ -185,11 +189,12 @@ def server_thread(clientServerSocket, upload_port):
 
         
 
-        elif request_type == "CLOSE":
+        elif request_type == "5" or request_type == 5:
             clientServerSocket.close()
+            running = False
+            os._exit(0)
             break
-
-
+    
 def main():
     # Manually create a random port number for the upload socket connection
     upload_port = random.randint(10000, 63000)
@@ -203,5 +208,9 @@ def main():
     server_conn_thread.start()
 
 
-if __name__ == '__main__':
+try:
     main()
+except Exception as e:
+	print(e.with_traceback)
+	traceback.print_exc()
+	print(e)
